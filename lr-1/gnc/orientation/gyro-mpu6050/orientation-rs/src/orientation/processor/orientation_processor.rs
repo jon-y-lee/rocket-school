@@ -17,7 +17,7 @@
             // let mut prev_val: u8 = 255;
             loop {
                 let val = input.get_value()?;
-                println!("val: {:?}", val)
+                println!("val: {:?}", val);
                 // if val != prev_val {
                 //     println!("Pin State: {}", if val == 0 { "Low" } else { "High" });
                 //     prev_val = val;
