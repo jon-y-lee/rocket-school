@@ -22,7 +22,7 @@
                 //     println!("Pin State: {}", if val == 0 { "Low" } else { "High" });
                 //     prev_val = val;
                 // }
-                std::thread::sleep(Duration::from_millis(1000));
+                std::thread::sleep(std::time::Duration::from_millis(1000));
             }
         });
 
