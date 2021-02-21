@@ -1,6 +1,6 @@
 #[path = "util/constants.rs"]
 mod util;
-extern crate sysfs_gpio;
+// extern crate sysfs_gpio;
 
 mod orientation_task_initializer;
 mod orientation;
