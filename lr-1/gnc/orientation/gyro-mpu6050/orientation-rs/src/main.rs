@@ -1,11 +1,10 @@
-#[path = "util/constants.rs"] mod util;
-#[path = "orientation/Orientation.rs"] mod Orientation;
-#[path = "orientation/Angle.rs"] mod Angle;
+#[path = "util/constants.rs"]
+mod util;
 extern crate sysfs_gpio;
 
-// use util::RAD_TO_DEG;
-// mod util/constants;
-mod OrientationTaskInitializer;
+mod orientation_task_initializer;
+mod orientation;
+
 use std::thread;
 use std::time::Duration;
 
@@ -25,5 +24,5 @@ fn main() {
     // println!("{} angle:", an.x);
 
     // let handle =
-    OrientationTaskInitializer::initialize();
+    orientation_task_initializer::initialize();
 }
