@@ -7,8 +7,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rppal = "0.11.3"
+
 #libc = "0.2"
-rppal = "0.11"
 #gpio = "0.4.1"
 #sysfs_gpio = "0.5"
 #mpu6050 = "0.1.3"

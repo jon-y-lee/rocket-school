@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub static RAD_TO_DEG: f32 = 57.2957786;
 pub static PWR_MGMT_1: i32 = 0x6B;
 pub static SMPLRT_DIV: i32 = 0x19;
