@@ -1,0 +1,3 @@
+#!/bin/sh
+
+rsync -r /Users/JonLee/git/rocket-school/lr-1/gnc/orientation/gyro-mpu6050/orientation-rs/ pi@rp1:/home/pi/workspace/rocket-school/lr-1/gnc/orientation/gyro-mpu6050/orientation-rs/

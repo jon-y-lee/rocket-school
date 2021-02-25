@@ -6,11 +6,9 @@ use embedded_hal::{
 use std::*;
 use std::io;
 use nalgebra::{Vector3, Vector2};
-
-// use linux_embedded_hal::sysfs_gpio::Result;
-// pub struct Processor <I> {
-//     i2c: I2cdev
-// }
+use libm::{powf, atan2f, sqrtf};
+use crate::util::RAD_TO_DEG;
+use crate::orientation::processor::processor::SignalProcessor;
 
 /// Slave address of Mpu6050
 pub const SLAVE_ADDR: u8 = 0x68;
@@ -84,29 +82,27 @@ pub const GYRO_REGY_H: u8 = 0x45;
 pub const GYRO_REGZ_H: u8 = 0x47;
 
 pub const GYRO_SENS: (f32, f32, f32, f32) = (131., 65.5, 32.8, 16.4);
+pub const ACCEL_SENS: (f32, f32, f32, f32) = (16384., 8192., 4096., 2048.);
+
+/// High Byte Register Calc roll
+pub const ACC_REGX_H : u8= 0x3b;
 
 /// Handles all operations on/with Mpu6050
 pub struct Processor {
     i2c: I2cdev,
-    // acc_sensitivity: f32,
-    // gyro_sensitivity: f32,
 }
 
-impl Processor {
-    /// Side effect free constructor with default sensitivies, no calibration
-    pub fn new(i2c: I2cdev) -> Self {
+impl SignalProcessor for Processor {
+    fn new(i2c: I2cdev) -> Self {
         Processor {
             i2c,
-            // acc_sensitivity: ACCEL_SENS.0,
-            // gyro_sensitivity: GYRO_SENS.0,
         }
     }
 
-    pub fn wake(&mut self) {
+    fn init(&mut self) {
         // MPU6050 has sleep enabled by default -> set bit 0 to wake
         // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001 (See Register Map )
         self.write_byte(PWR_MGMT_1::ADDR, 0x01);
-        // delay.delay_ms(100u8);
         println!("test test");
     }
 
@@ -117,64 +113,20 @@ impl Processor {
         }
     }
 
-
-    pub fn write_byte(&mut self, reg: u8, byte: u8) {
+    fn write_byte(&mut self, reg: u8, byte: u8) {
         self.i2c.write(SLAVE_ADDR, &[reg, byte]);
-            // .map_err(Mpu6050Error::I2c)?;
-        // delay disabled for dev build
-        // TODO: check effects with physical unit
-        // self.delay.delay_ms(10u8);
-        // Ok(())
     }
 
-    pub fn read_byte(&mut self, reg: u8) -> Result<u8, MPUError> {
+    fn read_byte(&mut self, reg: u8) -> Result<u8, MPUError> {
         let mut byte: [u8; 1] = [0; 1];
         self.i2c.write_read(SLAVE_ADDR, &[reg], &mut byte);
         Ok(byte[0])
     }
 
     /// Reads series of bytes into buf from specified reg
-    pub fn read_bytes(&mut self, reg: u8, buf: &mut [u8]) -> Result<(), MPUError> {
+    fn read_bytes(&mut self, reg: u8, buf: &mut [u8]) -> Result<(), MPUError> {
         self.i2c.write_read(SLAVE_ADDR, &[reg], buf);
         Ok(())
-    }
-
-    // pub fn read_bits(&mut self, reg: u8, start_bit: u8, length: u8) -> Result<u8, MPUError> {
-    //     let mut byte: [u8; 1] = [0; 1];
-    //     self.read_bytes(reg, &mut byte);
-    //     Ok(self.get_bits(byte[0], start_bit, length))
-    // }
-    //
-    // /// get bits start - start+length from byte
-    // pub fn get_bits(mut byte: u8, bit_start: u8, length: u8) -> u8 {
-    //     // 01101001 read byte
-    //     // 76543210 bit numbers
-    //     //    xxx   args: bit_start=4, length=3
-    //     //    010   masked
-    //     //   -> 010 shifted
-    //
-    //     // without mask_shift, strange behavior occurs, wenn bit_start < length.
-    //     // e.g. bit_start=2, length = 2
-    //     // in SOME cases, you get an 'attempt to subtract with overflow' exception, when
-    //     // bitstart - length + 1 = 0
-    //     // therefore just "cut off" at 0 shift
-    //     let mask_shift: u8 = if bit_start < length { 0 } else { bit_start - length + 1 };
-    //     let mask: u8 = ((1 << length) - 1) << mask_shift;
-    //     byte &= mask as u8;
-    //     byte >>= mask_shift;
-    //     byte
-    // }
-
-    /// Reads rotation (gyro/acc) from specified register
-    fn read_rot(&mut self, reg: u8) -> Result<Vector3<f32>, MPUError> {
-        let mut buf: [u8; 6] = [0; 6];
-        self.read_bytes(reg, &mut buf);
-
-        Ok(Vector3::<f32>::new(
-            self.read_word_2c(&buf[0..2]) as f32,
-            self.read_word_2c(&buf[2..4]) as f32,
-            self.read_word_2c(&buf[4..6]) as f32
-        ))
     }
 
     /// Converts 2 bytes number in 2 compliment
@@ -190,20 +142,68 @@ impl Processor {
 
         word
     }
+}
 
+impl Processor {
 
-    pub fn read(&mut self) {
+    /// Reads rotation (gyro/acc) from specified register
+    fn read_rot(&mut self, reg: u8) -> Result<Vector3<f32>, MPUError> {
+        let mut buf: [u8; 6] = [0; 6];
+        self.read_bytes(reg, &mut buf);
 
-        // let byte = self.read_bits(GYRO_CONFIG::ADDR,
-        //                           GYRO_CONFIG::FS_SEL.bit,
-        //                           GYRO_CONFIG::FS_SEL.length)?;
+        Ok(Vector3::<f32>::new(
+            self.read_word_2c(&buf[0..2]) as f32,
+            self.read_word_2c(&buf[2..4]) as f32,
+            self.read_word_2c(&buf[4..6]) as f32
+        ))
+    }
 
+    fn read_gyro(&mut self) -> Result<Vector3<f32>, MPUError> {
         let mut gyro = self.read_rot(GYRO_REGX_H).unwrap();
 
         gyro *= PI_180 * GYRO_SENS.0;
-        // println!("Reading from registry");
         println!("gyro: {:?}", gyro);
 
-        // Ok(gyro);
+        Ok(gyro)
+    }
+
+
+    /// Accelerometer readings in g
+    fn get_acc(&mut self) -> Result<Vector3<f32>, MPUError> {
+        let mut acc = self.read_rot(ACC_REGX_H)?;
+        acc /= ACCEL_SENS.0;
+
+        Ok(acc)
+    }
+
+    /// Roll and pitch estimation from raw accelerometer readings
+    /// NOTE: no yaw! no magnetometer present on MPU6050
+    /// https://www.nxp.com/docs/en/application-note/AN3461.pdf equation 28, 29
+    fn get_acc_angles(&mut self) -> Result<Vector2<f32>, MPUError> {
+        let acc = self.get_acc()?;
+
+        Ok(Vector2::<f32>::new(
+            atan2f(acc.y, sqrtf(powf(acc.x, 2.) + powf(acc.z, 2.))),
+            atan2f(-acc.x, sqrtf(powf(acc.y, 2.) + powf(acc.z, 2.)))
+        ))
+    }
+
+    fn read_acc(&mut self) -> Result<Vector2<f32>, MPUError> {
+        let mut acc = self.read_rot(ACC_REGX_H)?;
+        acc /= ACCEL_SENS.0;
+
+        Ok(Vector2::<f32>::new(
+            atan2f(acc.y, sqrtf(powf(acc.x, 2.) + powf(acc.z, 2.))),
+            atan2f(-acc.x, sqrtf(powf(acc.y, 2.) + powf(acc.z, 2.)))
+        ))
+    }
+
+
+    pub(crate) fn read(&mut self) {
+
+        let pitchRoll = self.get_acc_angles().unwrap();
+        println!("acc: {:?}", pitchRoll[0] * RAD_TO_DEG);
+        println!("acc: {:?}", pitchRoll[1] * RAD_TO_DEG);
+
     }
 }

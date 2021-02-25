@@ -11,3 +11,5 @@ pub static ACCEL_ZOUT_H: i32 = 0x3F;
 pub static GYRO_XOUT_H: i32 = 0x43;
 pub static GYRO_YOUT_H: i32 = 0x45;
 pub static GYRO_ZOUT_H: i32 = 0x47;
+
+pub static TEST: u8 = 0x75;
