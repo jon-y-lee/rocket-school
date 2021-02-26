@@ -88,13 +88,13 @@ pub const ACCEL_SENS: (f32, f32, f32, f32) = (16384., 8192., 4096., 2048.);
 pub const ACC_REGX_H : u8= 0x3b;
 
 /// Handles all operations on/with Mpu6050
-pub struct Processor {
+pub struct I2CProcessor {
     i2c: I2cdev,
 }
 
-impl SignalProcessor for Processor {
+impl SignalProcessor for I2CProcessor {
     fn new(i2c: I2cdev) -> Self {
-        Processor {
+        I2CProcessor {
             i2c,
         }
     }
@@ -141,69 +141,5 @@ impl SignalProcessor for Processor {
         }
 
         word
-    }
-}
-
-impl Processor {
-
-    /// Reads rotation (gyro/acc) from specified register
-    fn read_rot(&mut self, reg: u8) -> Result<Vector3<f32>, MPUError> {
-        let mut buf: [u8; 6] = [0; 6];
-        self.read_bytes(reg, &mut buf);
-
-        Ok(Vector3::<f32>::new(
-            self.read_word_2c(&buf[0..2]) as f32,
-            self.read_word_2c(&buf[2..4]) as f32,
-            self.read_word_2c(&buf[4..6]) as f32
-        ))
-    }
-
-    fn read_gyro(&mut self) -> Result<Vector3<f32>, MPUError> {
-        let mut gyro = self.read_rot(GYRO_REGX_H).unwrap();
-
-        gyro *= PI_180 * GYRO_SENS.0;
-        println!("gyro: {:?}", gyro);
-
-        Ok(gyro)
-    }
-
-
-    /// Accelerometer readings in g
-    fn get_acc(&mut self) -> Result<Vector3<f32>, MPUError> {
-        let mut acc = self.read_rot(ACC_REGX_H)?;
-        acc /= ACCEL_SENS.0;
-
-        Ok(acc)
-    }
-
-    /// Roll and pitch estimation from raw accelerometer readings
-    /// NOTE: no yaw! no magnetometer present on MPU6050
-    /// https://www.nxp.com/docs/en/application-note/AN3461.pdf equation 28, 29
-    fn get_acc_angles(&mut self) -> Result<Vector2<f32>, MPUError> {
-        let acc = self.get_acc()?;
-
-        Ok(Vector2::<f32>::new(
-            atan2f(acc.y, sqrtf(powf(acc.x, 2.) + powf(acc.z, 2.))),
-            atan2f(-acc.x, sqrtf(powf(acc.y, 2.) + powf(acc.z, 2.)))
-        ))
-    }
-
-    fn read_acc(&mut self) -> Result<Vector2<f32>, MPUError> {
-        let mut acc = self.read_rot(ACC_REGX_H)?;
-        acc /= ACCEL_SENS.0;
-
-        Ok(Vector2::<f32>::new(
-            atan2f(acc.y, sqrtf(powf(acc.x, 2.) + powf(acc.z, 2.))),
-            atan2f(-acc.x, sqrtf(powf(acc.y, 2.) + powf(acc.z, 2.)))
-        ))
-    }
-
-
-    pub(crate) fn read(&mut self) {
-
-        let pitchRoll = self.get_acc_angles().unwrap();
-        println!("acc: {:?}", pitchRoll[0] * RAD_TO_DEG);
-        println!("acc: {:?}", pitchRoll[1] * RAD_TO_DEG);
-
     }
 }

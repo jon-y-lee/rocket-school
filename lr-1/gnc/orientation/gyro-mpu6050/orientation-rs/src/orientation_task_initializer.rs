@@ -1,12 +1,11 @@
 use crate::orientation::processor;
 use i2cdev::*;
 use linux_embedded_hal::{I2cdev, Delay};
-// use processor::orientation_processor;
 
 use std::{thread, time};
 use crate::orientation::processor::orientation_processor;
+use crate::orientation::processor::accellerometer_processor;
 use crate::orientation::processor::processor::SignalProcessor;
-
 pub fn initialize() {
 
     let i2c = I2cdev::new("/dev/i2c-1");
@@ -14,17 +13,19 @@ pub fn initialize() {
 
     let dev = i2c.unwrap();
 
-    let mut proc = orientation_processor::Processor::new(dev);
+    let mut i2cProcessor = orientation_processor::I2CProcessor::new(dev);
 
-    proc.init();
+    i2cProcessor.init();
 
-    println!("Sleeping for 1s");
-
-    let second = time::Duration::from_millis(20);
+    let second = time::Duration::from_millis(1000);
     thread::sleep(second);
+    i2cProcessor.verify();
+
+    let mut accelerometerProcessor
+        = accellerometer_processor::AccelerometerProcessor::new(i2cProcessor);
 
     thread::spawn(move || loop {
-        proc.read();
+        accelerometerProcessor.read();
         thread::sleep(second);
     }).join().map_err(|err| println!("{:?}", err)).ok();
 }
