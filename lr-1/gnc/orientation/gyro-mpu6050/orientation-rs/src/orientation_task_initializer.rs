@@ -6,6 +6,8 @@ use std::{thread, time};
 use crate::orientation::processor::orientation_processor;
 use crate::orientation::processor::accelerometer_processor;
 use crate::orientation::processor::processor::SignalProcessor;
+use crate::orientation::processor::temperature_processor;
+
 pub fn initialize() {
 
     let i2c = I2cdev::new("/dev/i2c-1");
@@ -23,11 +25,20 @@ pub fn initialize() {
     thread::sleep(second);
     i2cProcessor.verify();
 
-    let mut accelerometerProcessor
-        = accelerometer_processor::AccelerometerProcessor::new(i2cProcessor);
+    // let mut accelerometerProcessor
+    //     = accelerometer_processor::AccelerometerProcessor::new(i2cProcessor);
+
+    let mut tempProcessor
+        = temperature_processor::TemperatureProcessor::new(i2cProcessor);
+
+    // thread::spawn(move || loop {
+    //     accelerometerProcessor.read();
+    //     thread::sleep(second);
+    // }).join().map_err(|err| println!("{:?}", err)).ok();
 
     thread::spawn(move || loop {
-        accelerometerProcessor.read();
-        thread::sleep(millis);
+        tempProcessor.read();
+        thread::sleep(second);
     }).join().map_err(|err| println!("{:?}", err)).ok();
+
 }
