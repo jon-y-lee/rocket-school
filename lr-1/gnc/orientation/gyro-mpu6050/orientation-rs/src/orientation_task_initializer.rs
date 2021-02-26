@@ -4,7 +4,7 @@ use linux_embedded_hal::{I2cdev, Delay};
 
 use std::{thread, time};
 use crate::orientation::processor::orientation_processor;
-use crate::orientation::processor::accellerometer_processor;
+use crate::orientation::processor::accelerometer_processor;
 use crate::orientation::processor::processor::SignalProcessor;
 pub fn initialize() {
 
@@ -18,14 +18,16 @@ pub fn initialize() {
     i2cProcessor.init();
 
     let second = time::Duration::from_millis(1000);
+    let millis = time::Duration::from_millis(100);
+
     thread::sleep(second);
     i2cProcessor.verify();
 
     let mut accelerometerProcessor
-        = accellerometer_processor::AccelerometerProcessor::new(i2cProcessor);
+        = accelerometer_processor::AccelerometerProcessor::new(i2cProcessor);
 
     thread::spawn(move || loop {
         accelerometerProcessor.read();
-        thread::sleep(second);
+        thread::sleep(millis);
     }).join().map_err(|err| println!("{:?}", err)).ok();
 }
