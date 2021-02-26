@@ -9,6 +9,7 @@ use nalgebra::{Vector3, Vector2};
 use libm::{powf, atan2f, sqrtf};
 use crate::util::RAD_TO_DEG;
 use crate::orientation::processor::processor::SignalProcessor;
+use logs::{info, warn};
 
 /// Slave address of Mpu6050
 pub const SLAVE_ADDR: u8 = 0x68;
@@ -87,7 +88,6 @@ pub const ACCEL_SENS: (f32, f32, f32, f32) = (16384., 8192., 4096., 2048.);
 /// High Byte Register Calc roll
 pub const ACC_REGX_H : u8= 0x3b;
 
-/// Handles all operations on/with Mpu6050
 pub struct I2CProcessor {
     i2c: I2cdev,
 }
@@ -103,13 +103,13 @@ impl SignalProcessor for I2CProcessor {
         // MPU6050 has sleep enabled by default -> set bit 0 to wake
         // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001 (See Register Map )
         self.write_byte(PWR_MGMT_1::ADDR, 0x01);
-        println!("test test");
+        info!("Initializing");
     }
 
     fn verify(&mut self) {
         let address = self.read_byte(WHOAMI);
         if address.unwrap() != SLAVE_ADDR {
-            println!("Not verified");
+            warn!("Not verified");
         }
     }
 
@@ -117,14 +117,14 @@ impl SignalProcessor for I2CProcessor {
         self.i2c.write(SLAVE_ADDR, &[reg, byte]);
     }
 
-    fn read_byte(&mut self, reg: u8) -> Result<u8, MPUError> {
+    fn read_byte(&mut self, reg: u8) -> std::result::Result<u8, MPUError> {
         let mut byte: [u8; 1] = [0; 1];
         self.i2c.write_read(SLAVE_ADDR, &[reg], &mut byte);
         Ok(byte[0])
     }
 
     /// Reads series of bytes into buf from specified reg
-    fn read_bytes(&mut self, reg: u8, buf: &mut [u8]) -> Result<(), MPUError> {
+    fn read_bytes(&mut self, reg: u8, buf: &mut [u8]) -> std::result::Result<(), MPUError> {
         self.i2c.write_read(SLAVE_ADDR, &[reg], buf);
         Ok(())
     }
