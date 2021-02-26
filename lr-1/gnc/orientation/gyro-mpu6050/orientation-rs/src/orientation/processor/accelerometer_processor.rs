@@ -60,7 +60,6 @@ impl AccelerometerProcessor {
     }
 
     pub(crate) fn read(&mut self) {
-
         let pitchRoll = self.get_roll_and_pitch().unwrap();
         info!("acc: {:?} {:?}", pitchRoll[0] * RAD_TO_DEG, pitchRoll[1] * RAD_TO_DEG);
 

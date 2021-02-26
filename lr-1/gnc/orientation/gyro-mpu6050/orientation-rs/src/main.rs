@@ -2,6 +2,7 @@
 mod util;
 mod orientation_task_initializer;
 mod orientation;
+mod producer;
 
 fn main() {
     println!("Orientation Task Initializer");

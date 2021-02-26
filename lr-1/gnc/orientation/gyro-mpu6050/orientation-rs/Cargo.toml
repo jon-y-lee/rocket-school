@@ -25,6 +25,8 @@ version = "0.24.1"
 
 [dependencies]
 logs = "0.3.0"
+#socket2 = { version = "0.3.4", features = ["reuseport"] }
+#lazy_static = "1.0"
 #rppal = "0.11.3"
 #linux-embedded-hal = "0.3.0"
 #i2cdev = "0.4.4"

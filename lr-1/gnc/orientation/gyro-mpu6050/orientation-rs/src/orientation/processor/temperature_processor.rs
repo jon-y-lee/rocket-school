@@ -4,6 +4,7 @@ use crate::orientation::processor::orientation_processor::{MPUError, I2CProcesso
 use crate::util::RAD_TO_DEG;
 use libm::{powf, atan2f, sqrtf};
 use logs::{info, warn};
+use crate::producer::multicast_client::MulticastProducer;
 
 pub struct TemperatureProcessor {
     signal_processor: I2CProcessor,
@@ -37,5 +38,6 @@ impl TemperatureProcessor {
     pub(crate) fn read(&mut self) {
         let temp = self.get_temp().unwrap();
         info!("temp: {:?}", (temp * (9.0/5.0)) + 32.0);
+        MulticastProducer::test();
     }
 }
