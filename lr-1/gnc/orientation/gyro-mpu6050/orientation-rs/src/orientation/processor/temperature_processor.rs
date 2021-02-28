@@ -5,9 +5,12 @@ use crate::util::RAD_TO_DEG;
 use libm::{powf, atan2f, sqrtf};
 use logs::{info, warn};
 use crate::producer::multicast_client::MulticastProducer;
+use crate::producer::temperature_event::Event;
+use crate::producer::event_type::EventType::TEMPERATURE;
 
 pub struct TemperatureProcessor {
     signal_processor: I2CProcessor,
+    publisher: MulticastProducer
 }
 
 pub const TEMP_OUT_H : u8= 0x41;
@@ -21,8 +24,13 @@ impl TemperatureProcessor {
 
     pub fn new(signal_processor: I2CProcessor) -> Self {
         TemperatureProcessor {
-            signal_processor
+            signal_processor,
+            publisher: crate::producer::multicast_client::MulticastProducer::new()
         }
+    }
+
+    pub fn init(&self) {
+        self.publisher.init();
     }
 
     /// Sensor Temp in degrees celcius
@@ -38,6 +46,13 @@ impl TemperatureProcessor {
     pub(crate) fn read(&mut self) {
         let temp = self.get_temp().unwrap();
         info!("temp: {:?}", (temp * (9.0/5.0)) + 32.0);
-        MulticastProducer::test();
+        let fTemp: f32 = (temp * (9.0/5.0)) + 32.0;
+
+        let event = Event {
+            eventType: TEMPERATURE,
+            value: fTemp
+        };
+
+        self.publisher.send(event);
     }
 }
